@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Backup Integrity Monitor</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:820px;margin:24px auto;padding:0 16px;background:#f6f7f9;color:#1a1a1a}
+button{padding:8px 16px;margin-right:8px;border:0;border-radius:6px;background:#6a0dad;color:#fff;cursor:pointer}
+.card{background:#fff;padding:16px;border-radius:8px;margin:14px 0;box-shadow:0 1px 3px #0002}
+.badge{display:inline-block;padding:4px 12px;border-radius:12px;color:#fff;font-weight:600}
+.OK{background:#1f9d55}.WARNING{background:#d69e2e}.TAMPERED{background:#dd6b20}.CRITICAL,.BASELINE_TAMPERED{background:#c53030}
+li{font-family:monospace;font-size:13px}table{width:100%;border-collapse:collapse}td,th{padding:6px;border-bottom:1px solid #eee;text-align:left;font-size:13px}
+</style></head><body>
+<h1>Backup Integrity Monitor</h1>
+<button id="b">Create baseline</button><button id="s">Scan now</button><span id="msg"></span>
+<div class="card" id="status">No scan yet.</div>
+<div class="card"><h3>Scan history</h3><table id="hist"></table></div>
+<script>
+const $ = id => document.getElementById(id);
+function el(tag, text, cls){ const e=document.createElement(tag); if(text!==undefined)e.textContent=text; if(cls)e.className=cls; return e; }
+function list(title, arr){ const d=el('div'); d.append(el('h4',`${title} (${arr.length})`)); const u=el('ul'); arr.forEach(f=>u.append(el('li',f))); d.append(u); return d; }
+async function api(url, method='GET'){ const r=await fetch(url,{method}); return r.json(); }
+function render(r){
+  const c=$('status'); c.replaceChildren();
+  if(!r||r.error){ c.textContent=r?r.error:'No scan yet.'; return; }
+  c.append(el('span',r.status,'badge '+r.status));
+  c.append(el('p',`${r.time} | files: ${r.totalFiles} | changed: ${r.changedPercent}% | baseline signature valid: ${r.baselineValid}`));
+  c.append(list('Modified',r.modified),list('Deleted',r.deleted),list('New files',r.added));
+}
+async function history(){
+  const h=await api('/api/history'), t=$('hist'); t.replaceChildren();
+  const hr=el('tr'); ['Time','Status','Modified','Deleted','New'].forEach(x=>hr.append(el('th',x))); t.append(hr);
+  h.slice(0,10).forEach(x=>{ const tr=el('tr'); [x.time,x.status,x.modified,x.deleted,x.added].forEach(v=>tr.append(el('td',v))); t.append(tr); });
+}
+$('b').onclick=async()=>{ const r=await api('/api/baseline','POST'); $('msg').textContent=r.error||`Baseline saved: ${r.total} files`; };
+$('s').onclick=async()=>{ render(await api('/api/scan','POST')); history(); };
+api('/api/latest').then(render); history();
+</script></body></html>

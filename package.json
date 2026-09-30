@@ -1,0 +1,8 @@
+{
+  "name": "backup-integrity-monitor",
+  "version": "1.0.0",
+  "description": "Detects tampering, deletion and mass modification in backup files using SHA-256 baselines",
+  "main": "server.js",
+  "scripts": { "start": "node server.js", "baseline": "node cli.js baseline", "scan": "node cli.js scan" },
+  "dependencies": { "express": "^4.19.2" }
+}
